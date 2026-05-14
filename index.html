@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Proxy Manager</title>
+    <style>
+        body { background: #070b12; color: #00e5ff; font-family: monospace; padding: 20px; }
+        .canal { border: 1px solid #1a2d4a; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
+        input { width: 100%; background: #0d1320; border: 1px solid #00e5ff; color: #fff; padding: 8px; margin: 5px 0; }
+        button { background: #00e5ff; border: none; padding: 8px 15px; cursor: pointer; font-weight: bold; }
+        .btn-del { background: #ff1744; color: #fff; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <h2>SPARKLETV PROXY MANAGER</h2>
+    <div id="lista"></div>
+    <div class="canal">
+        <h3>+ Nuevo Canal</h3>
+        <input id="n" placeholder="Nombre (Ej: TNT Sports)">
+        <input id="u" placeholder="URL m3u8 con Token">
+        <button onclick="add()">AGREGAR</button>
+    </div>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('canales')) || [];
+        function save() { localStorage.setItem('canales', JSON.stringify(db)); render(); }
+        function add() {
+            const n = document.getElementById('n').value;
+            const u = document.getElementById('u').value;
+            if(n && u) { db.push({ id: Date.now(), name: n, url: u }); save(); }
+        }
+        function del(id) { db = db.filter(c => c.id !== id); save(); }
+        function update(id, val) {
+            db = db.map(c => c.id === id ? {...c, url: val} : c);
+            localStorage.setItem('canales', JSON.stringify(db));
+        }
+        function render() {
+            document.getElementById('lista').innerHTML = db.map(c => `
+                <div class="canal">
+                    <strong>${c.name}</strong><br>
+                    <input value="${c.url}" onchange="update(${c.id}, this.value)">
+                    <button class="btn-del" onclick="del(${c.id})">ELIMINAR</button>
+                    <p style="font-size:10px; color:#3a5070;">Proxy ID: ${c.id}</p>
+                </div>
+            `).join('');
+        }
+        render();
+    </script>
+</body>
+</html>
+
