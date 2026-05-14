@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SparkleTv · Token Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;600;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #070b12;
+    --bg2:      #0d1320;
+    --bg3:      #111c2e;
+    --border:   #1a2d4a;
+    --cyan:     #00e5ff;
+    --amber:    #ffab00;
+    --green:    #00e676;
+    --red:      #ff1744;
+    --dim:      #3a5070;
+    --text:     #cde4f5;
+    --mono:     'Share Tech Mono', monospace;
+    --sans:     'Exo 2', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanlines */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.08) 2px,
+      rgba(0,0,0,.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* grid bg */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(180deg, #0a1525 0%, transparent 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 44px; height: 44px;
+    border: 2px solid var(--cyan);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 18px rgba(0,229,255,.3), inset 0 0 10px rgba(0,229,255,.05);
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 12px rgba(0,229,255,.25), inset 0 0 8px rgba(0,229,255,.04); }
+    50%      { box-shadow: 0 0 28px rgba(0,229,255,.5),  inset 0 0 14px rgba(0,229,255,.1); }
+  }
+
+  .logo-title {
+    font-family: var(--mono);
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: #fff;
+  }
+
+  .logo-title span { color: var(--cyan); }
+
+  .logo-sub {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+
+  /* port widget */
+  .port-widget { display: flex; align-items: center; gap: 8px; }
+
+  .port-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+  }
+
+  .port-input {
+    width: 76px;
+    background: var(--bg2);
+    border: 1px solid var(--cyan);
+    border-radius: 6px;
+    padding: 7px 10px;
+    color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    outline: none;
+    box-shadow: 0 0 8px rgba(0,229,255,.2);
+    transition: box-shadow .3s;
+  }
+  .port-input:focus { box-shadow: 0 0 16px rgba(0,229,255,.45); }
+
+  /* ── MAIN LAYOUT ── */
+  .main { max-width: 900px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* playlist bar */
+  .playlist-bar {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    animation: fadeDown .4s ease both;
+  }
+
+  .playlist-bar .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+
+  .playlist-bar code {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--cyan);
+    word-break: break-all;
+  }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+
+  .tab-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--dim);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all .2s;
+    letter-spacing: .5px;
+  }
+
+  .tab-btn:hover { border-color: var(--cyan); color: var(--text); }
+
+  .tab-btn.active {
+    background: rgba(0,229,255,.1);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,229,255,.15);
+  }
+
+  /* ── PANEL ── */
+  .panel { animation: fadeUp .3s ease both; }
+
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:none } }
+
+  /* ── CHANNEL CARD ── */
+  .ch-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+  .ch-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .2s, box-shadow .2s;
+    cursor: pointer;
+  }
+
+  .ch-card:hover { border-color: #2a4060; }
+  .ch-card.open  { border-color: var(--cyan); box-shadow: 0 0 20px rgba(0,229,255,.1); }
+
+  .ch-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+  }
+
+  .ch-info { display: flex; align-items: center; gap: 14px; }
+
+  .ch-emoji { font-size: 24px; line-height: 1; }
+
+  .ch-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+
+  .ch-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+  }
+
+  .ch-right { display: flex; align-items: center; gap: 14px; }
+
+  /* token bar */
+  .token-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .token-track {
+    width: 52px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .token-fill { height: 100%; border-radius: 2px; transition: width 1s linear, background .5s; }
+  .token-label { font-family: var(--mono); font-size: 10px; font-weight: bold; min-width: 64px; }
+
+  .btn-del {
+    background: none; border: none;
+    color: var(--red); cursor: pointer;
+    font-size: 18px; line-height: 1;
+    opacity: .6; transition: opacity .2s;
+    padding: 2px 6px;
+  }
+  .btn-del:hover { opacity: 1; }
+
+  /* channel body */
+  .ch-body {
+    display: none;
+    padding: 0 18px 18px;
+    border-top: 1px solid var(--border);
+    margin-top: 0;
+  }
+  .ch-card.open .ch-body { display: block; animation: fadeUp .25s ease both; }
+
+  .ch-body-inner { padding-top: 16px; }
+
+  .field-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 2px;
+    margin-bottom: 7px;
+  }
+
+  .url-row { display: flex; gap: 8px; margin-bottom: 14px; }
+
+  .url-input, textarea.url-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 13px;
+    color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 11px;
+    outline: none;
+    resize: none;
+    transition: border-color .2s, box-shadow .2s;
+    line-height: 1.5;
+  }
+  .url-input:focus, textarea.url-input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px rgba(0,229,255,.15);
+  }
+
+  /* curl box */
+  .curl-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .curl-box code {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--amber);
+    word-break: break-all;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    border: none; border-radius: 7px;
+    cursor: pointer; font-family: var(--sans);
+    font-weight: 700; font-size: 13px;
+    padding: 10px 18px;
+    transition: all .2s;
+  }
+
+  .btn-cyan {
+    background: rgba(0,229,255,.12);
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+  }
+  .btn-cyan:hover { background: rgba(0,229,255,.22); box-shadow: 0 0 14px rgba(0,229,255,.25); }
+
+  .btn-green {
+    background: rgba(0,230,118,.15);
+    color: var(--green);
+    border: 1px solid var(--green);
+  }
+  .btn-green:hover { background: rgba(0,230,118,.25); }
+
+  .btn-amber {
+    background: rgba(255,171,0,.12);
+    color: var(--amber);
+    border: 1px solid var(--amber);
+  }
+  .btn-amber:hover { background: rgba(255,171,0,.22); }
+
+  .btn-dim {
+    background: var(--bg3);
+    color: var(--dim);
+    border: 1px solid var(--border);
+  }
+  .btn-dim:hover { border-color: #2a4060; color: var(--text); }
+
+  .btn-copy {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--dim);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn-copy:hover { border-color: var(--cyan); color: var(--cyan); }
+  .btn-copy.ok    { border-color: var(--green); color: var(--green); }
+
+  /* add channel */
+  .add-btn-outer {
+    width: 100%;
+    background: none;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    color: var(--dim);
+    padding: 15px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 14px;
+    transition: all .2s;
+  }
+  .add-btn-outer:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .add-form {
+    background: var(--bg2);
+    border: 1px solid var(--cyan);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 0 24px rgba(0,229,255,.08);
+  }
+
+  .add-form-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    font-weight: bold;
+  }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+  .form-field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .form-input, .form-select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 13px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--cyan); }
+  .form-select option { background: #0d1320; }
+
+  .emoji-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+  .emoji-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 11px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .emoji-btn:hover { border-color: var(--cyan); }
+  .emoji-btn.sel   { border-color: var(--cyan); background: rgba(0,229,255,.1); box-shadow: 0 0 8px rgba(0,229,255,.2); }
+
+  .form-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+  /* ── CODE BLOCK ── */
+  .code-wrap { position: relative; }
+
+  .code-header {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .code-header span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+
+  .code-dots { display: flex; gap: 6px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #ffbd2e; }
+  .dot-g { background: #28c840; }
+
+  pre.code-body {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 0 0 10px 10px;
+    padding: 18px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: #7dd3fc;
+    overflow: auto;
+    max-height: 440px;
+    line-height: 1.75;
+    tab-size: 4;
+  }
+
+  pre.code-body .kw  { color: var(--cyan); }
+  pre.code-body .str { color: #a5d6a7; }
+  pre.code-body .cm  { color: var(--dim); font-style: italic; }
+  pre.code-body .fn  { color: var(--amber); }
+  pre.code-body .num { color: #f48fb1; }
+
+  /* ── M3U BLOCK ── */
+  .m3u-body {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--cyan);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* ── STEPS ── */
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .step-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 13px 15px;
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .step-val {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .step-val code {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text);
+    word-break: break-all;
+    flex: 1;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--border);
+    letter-spacing: 2px;
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: var(--bg2);
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    box-shadow: 0 0 20px rgba(0,230,118,.2);
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all .3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: none; }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    .grid2     { grid-template-columns: 1fr; }
+    .steps-grid{ grid-template-columns: 1fr; }
+    header     { flex-wrap: wrap; gap: 14px; }
+    .tabs      { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-title">SPARKLETV <span>TOKEN</span> MANAGER</div>
+      <div class="logo-sub">MULTI-CANAL · PROXY · TOKEN REFRESH</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <!-- IP -->
+    <div>
+      <div class="port-label" style="text-align:right">MI IP LOCAL</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <input class="port-input" id="ipInput" type="text" value="192.168.1.57"
+          style="width:130px;font-size:13px" placeholder="192.168.x.x"/>
+      </div>
+    </div>
+    <!-- PORT -->
+    <div class="port-widget">
+      <div class="port-label">PUERTO</div>
+      <input class="port-input" id="portInput" type="number" value="9191" min="1024" max="65535"/>
+      <button class="btn btn-cyan" onclick="applySettings()">✓</button>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- PLAYLIST BAR -->
+  <div class="playlist-bar">
+    <span class="label">PLAYLIST M3U</span>
+    <code id="playlistUrl">http://localhost:9191/playlist.m3u8</code>
+    <button class="btn-copy" onclick="copyText('playlistUrl', this)">📋 Copiar</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('canales', this)">📡 Canales (<span id="chCount">0</span>)</button>
+    <button class="tab-btn" onclick="showTab('script', this)">🖥 Script Python</button>
+    <button class="tab-btn" onclick="showTab('m3u', this)">📋 Archivo M3U</button>
+  </div>
+
+  <!-- TAB: CANALES -->
+  <div id="tab-canales" class="panel">
+
+    <div class="ch-list" id="chList"></div>
+
+    <!-- ADD FORM -->
+    <div id="addBtnOuter">
+      <button class="add-btn-outer" onclick="openAddForm()">＋ Agregar canal</button>
+    </div>
+
+    <div id="addForm" style="display:none" class="add-form">
+      <div class="add-form-title">// NUEVO CANAL</div>
+      <div class="grid2">
+        <div class="form-field">
+          <label>NOMBRE</label>
+          <input class="form-input" id="fName" placeholder="Ej: ESPN 2"/>
+        </div>
+        <div class="form-field">
+          <label>GRUPO</label>
+          <select class="form-select" id="fGroup">
+            <option>Sports</option><option>Movies</option><option>News</option>
+            <option>Series</option><option>Music</option><option>General</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field" style="margin-bottom:12px">
+        <label>URL DEL STREAM</label>
+        <input class="form-input" id="fUrl" placeholder="https://..." style="font-family:var(--mono);font-size:12px"/>
+      </div>
+      <div class="form-field" style="margin-bottom:0">
+        <label>ICONO</label>
+        <div class="emoji-grid" id="emojiGrid"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-cyan" style="flex:1" onclick="addChannel()">＋ Agregar</button>
+        <button class="btn btn-dim" onclick="closeAddForm()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: SCRIPT -->
+  <div id="tab-script" class="panel" style="display:none">
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01 / GUARDA EL ARCHIVO</div>
+        <div class="step-val">
+          <code>sparkletv_proxy.py</code>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02 / EJECUTA</div>
+        <div class="step-val">
+          <code>python3 sparkletv_proxy.py</code>
+          <button class="btn-copy" onclick="copyRaw('python3 sparkletv_proxy.py', this)">📋</button>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03 / IMPORTA EN SPARKLETV</div>
+        <div class="step-val">
+          <code id="step3url">http://localhost:9191/playlist.m3u8</code>
+          <button class="btn-copy" onclick="copyText('step3url', this)">📋</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="code-dots">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+        </div>
+        <span>sparkletv_proxy.py</span>
+        <button class="btn-copy" id="copyScriptBtn" onclick="copyText('scriptCode', this)">📋 Copiar script</button>
+      </div>
+      <pre class="code-body" id="scriptCode"></pre>
+    </div>
+  </div>
+
+  <!-- TAB: M3U -->
+  <div id="tab-m3u" class="panel" style="display:none">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#94a3b8;line-height:1.8">
+      Importa en SparkleTv → <strong style="color:var(--cyan)">Agregar lista → Desde URL</strong>:
+      <code style="color:var(--cyan);font-family:var(--mono);font-size:11px" id="m3uHintUrl">http://localhost:9191/playlist.m3u8</code>
+      &nbsp;o copia el contenido y guárdalo como <code style="color:var(--amber);font-family:var(--mono)">.m3u</code>
+    </div>
+    <div style="position:relative">
+      <div style="position:absolute;top:12px;right:12px;z-index:10">
+        <button class="btn-copy" onclick="copyText('m3uContent', this)">📋 Copiar M3U</button>
+      </div>
+      <div class="m3u-body" id="m3uContent"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<footer>SPARKLETV TOKEN MANAGER &nbsp;·&nbsp; GITHUB PAGES READY &nbsp;·&nbsp; localhost proxy</footer>
+
+<div id="toast">✓ Copiado</div>
+
+<script>
+// ──────────────────────────────────
+//  DATA
+// ──────────────────────────────────
+const EMOJIS = ['🏆','📺','🎯','⚽','🏀','🎾','🏈','🎬','🎵','🌍','🏊','🎮','🔴','🟡','🟢'];
+const GROUPS = ['Sports','Movies','News','Series','Music','General'];
+
+let port = 9191;
+let localIP = '192.168.1.57';
+let channels = [];
+let selectedEmoji = '📺';
+
+// ── PERSIST ──
+function save() { localStorage.setItem('stv_channels', JSON.stringify(channels)); localStorage.setItem('stv_port', port); localStorage.setItem('stv_ip', localIP); }
+function load() {
+  try { channels = JSON.parse(localStorage.getItem('stv_channels')) || []; } catch { channels = []; }
+  port    = parseInt(localStorage.getItem('stv_port')) || 9191;
+  localIP = localStorage.getItem('stv_ip') || '192.168.1.57';
+  if (!channels.length) channels = [
+    {
+      id: 1, name: 'ESPN Premium', logo: '🏆', group: 'Sports',
+      url: 'https://pecdl1.streameasthd.net/espnpremium/tracks-v1a1/mono.m3u8?ip=179.37.214.240&token=028a66a0746296a2c180f9932797ef76771d8692-24-1778580446-1778526446'
+    },
+    {
+      id: 2, name: 'Joy Media HD', logo: '🎬', group: 'General',
+      url: 'https://joy.media.edge-apps.net/hls/d6urkAijE1xXeKYAXMz8IAaoKOJA-YkUQd2Zykeg-ga381BdtvpF_EDOJSijhPZmrMRFOxEC5dTS3U6YvYvuU5TORMx6umrvF4wPHw/hg35c-k15n6-nn351-lje0m_720p/index.m3u8'
+    }
+  ];
+  document.getElementById('portInput').value = port;
+  document.getElementById('ipInput').value   = localIP;
+}
+
+// ──────────────────────────────────
+//  TOKEN PARSER  (2 tipos soportados)
+// ──────────────────────────────────
+
+// Tipo A: ?token=hash-seg-expireTs-startTs  (tokens cortos, horarios)
+function parseQueryToken(url) {
+  try {
+    const u = new URL(url);
+    const tok = u.searchParams.get('token') || '';
+    const p = tok.split('-');
+    if (p.length < 4) return null;
+    const exp = parseInt(p[2]), start = parseInt(p[3]);
+    if (isNaN(exp)||isNaN(start)) return null;
+    return { type: 'query', exp, start };
+  } catch { return null; }
+}
+
+// Tipo B: token binario en el path (base64url largo, sin query params)
+function parsePathToken(url) {
+  try {
+    const u = new URL(url);
+    if (u.searchParams.get('token')) return null;
+    const segs = u.pathname.split('/').filter(Boolean);
+    const b64seg = segs.find(s => s.length >= 40 && /^[A-Za-z0-9_-]+$/.test(s));
+    if (!b64seg) return null;
+
+    // Decodificar base64url manualmente (más robusto que atob en algunos browsers)
+    const b64std = b64seg.replace(/-/g,'+').replace(/_/g,'/');
+    const padded = b64std + '==='.slice((b64std.length + 3) % 4);
+    const binStr = atob(padded);
+    const raw = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) raw[i] = binStr.charCodeAt(i);
+
+    const now  = Date.now() / 1000;
+    // Rango válido: 2018-01-01 → 2035-01-01
+    const MIN  = 1514764800;
+    const MAX  = 2051222400;
+
+    const pastTs   = [];
+    const futureTs = [];
+
+    for (let i = 0; i <= raw.length - 4; i++) {
+      // Big-endian
+      const be = ((raw[i]<<24)|(raw[i+1]<<16)|(raw[i+2]<<8)|raw[i+3]) >>> 0;
+      if (be > MIN && be < MAX) {
+        be < now ? pastTs.push(be) : futureTs.push(be);
+      }
+      // Little-endian
+      const le = ((raw[i+3]<<24)|(raw[i+2]<<16)|(raw[i+1]<<8)|raw[i]) >>> 0;
+      if (le > MIN && le < MAX && le !== be) {
+        le < now ? pastTs.push(le) : futureTs.push(le);
+      }
+    }
+
+    if (!futureTs.length) return null;
+
+    const exp   = Math.max(...futureTs);
+    // Para start, preferir timestamps recientes (últimos 2 años)
+    const recentPast = pastTs.filter(t => t > now - 86400*730);
+    const start = recentPast.length
+      ? Math.max(...recentPast)
+      : (pastTs.length ? Math.max(...pastTs) : now - 86400);
+
+    return { type: 'path', exp, start };
+  } catch(e) { return null; }
+}
+
+function tokenStatus(url, now) {
+  const t = parseQueryToken(url) || parsePathToken(url);
+  if (!t) return { label: 'SIN TOKEN', color: '#3a5070', pct: 0, type: 'none' };
+
+  const rem   = t.exp - now;
+  const total = t.exp - t.start;
+  const pct   = Math.max(0, Math.min(100, rem/total*100));
+  const color = pct > 40 ? '#00e676' : pct > 15 ? '#ffab00' : '#ff1744';
+
+  if (rem <= 0) return { label: 'EXPIRADO', color: '#ff1744', pct: 0, type: t.type };
+
+  // tokens largos (> 30 días): mostrar días
+  if (rem > 86400 * 30) {
+    const dias  = Math.floor(rem/86400);
+    const horas = Math.floor((rem%86400)/3600);
+    const expDate = new Date(t.exp*1000).toLocaleDateString('es',{day:'2-digit',month:'short',year:'numeric'});
+    return { label: `${dias}d ${horas}h`, sublabel: `vence ${expDate}`, color: '#00e676', pct, type: t.type };
+  }
+
+  const h = Math.floor(rem/3600), m = Math.floor((rem%3600)/60), s = Math.floor(rem%60);
+  return { label: `${h}h ${m}m ${s}s`, color, pct, type: t.type };
+}
+
+// ──────────────────────────────────
+//  PORT
+// ──────────────────────────────────
+function applySettings() {
+  const n = parseInt(document.getElementById('portInput').value);
+  const ip = document.getElementById('ipInput').value.trim();
+  if (n >= 1024 && n <= 65535) port = n;
+  if (ip) localIP = ip;
+  save(); renderAll(); toast(`IP: ${localIP}  Puerto: ${port}`);
+}
+
+// ──────────────────────────────────
+//  TABS
+// ──────────────────────────────────
+function showTab(id, btn) {
+  ['canales','script','m3u'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===id ? '' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (id === 'script') renderScript();
+  if (id === 'm3u')    renderM3U();
+}
+
+// ──────────────────────────────────
+//  RENDER CHANNELS
+// ──────────────────────────────────
+function renderChannels() {
+  const now = Date.now() / 1000;
+  const list = document.getElementById('chList');
+  document.getElementById('chCount').textContent = channels.length;
+
+  list.innerHTML = channels.map(ch => {
+    const ts = tokenStatus(ch.url, now);
+    const curlCmd = `curl -X POST http://${localIP}:${port}/update/${ch.id} -d "NUEVA_URL"`;
+    return `
+    <div class="ch-card" id="card-${ch.id}" onclick="toggleCard(${ch.id})">
+      <div class="ch-head">
+        <div class="ch-info">
+          <div class="ch-emoji">${ch.logo}</div>
+          <div>
+            <div class="ch-name">${escHtml(ch.name)}</div>
+            <div class="ch-meta">${escHtml(ch.group)} &nbsp;·&nbsp; ${localIP}:${port}/stream/${ch.id}</div>
+          </div>
+        </div>
+        <div class="ch-right">
+          <div class="token-bar-wrap">
+            <div class="token-track"><div class="token-fill" style="width:${ts.pct}%;background:${ts.color}"></div></div>
+            <div>
+              <div class="token-label" style="color:${ts.color}">${ts.label}</div>
+              ${ts.sublabel ? `<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px">${ts.sublabel}</div>` : ''}
+            </div>
+          </div>
+          <button class="btn-del" onclick="event.stopPropagation();delChannel(${ch.id})">✕</button>
+        </div>
+      </div>
+      <div class="ch-body">
+        <div class="ch-body-inner">
+          <div class="field-label">URL DEL STREAM — pega aquí el nuevo token</div>
+          <div class="url-row">
+            <textarea class="url-input" id="url-${ch.id}" rows="2" onclick="event.stopPropagation()">${escHtml(ch.url)}</textarea>
+            <button class="btn btn-green" onclick="event.stopPropagation();saveUrl(${ch.id})" style="white-space:nowrap;align-self:flex-start;margin-top:1px">✓ Guardar</button>
+          </div>
+          <div class="field-label">ACTUALIZAR EN CALIENTE (proxy activo)</div>
+          <div class="curl-box">
+            <code id="curl-${ch.id}">${escHtml(curlCmd)}</code>
+            <button class="btn-copy" onclick="event.stopPropagation();copyText('curl-${ch.id}',this)">📋 Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(id) {
+  const card = document.getElementById('card-'+id);
+  const wasOpen = card.classList.contains('open');
+  document.querySelectorAll('.ch-card.open').forEach(c => c.classList.remove('open'));
+  if (!wasOpen) card.classList.add('open');
+}
+
+function saveUrl(id) {
+  const val = document.getElementById('url-'+id).value.trim();
+  if (!val) return;
+  channels = channels.map(c => c.id===id ? {...c, url:val} : c);
+  save(); renderChannels(); toast('URL actualizada');
+}
+
+function delChannel(id) {
+  if (!confirm('¿Eliminar este canal?')) return;
+  channels = channels.filter(c => c.id !== id);
+  save(); renderChannels();
+}
+
+// ──────────────────────────────────
+//  ADD FORM
+// ──────────────────────────────────
+function openAddForm() {
+  document.getElementById('addBtnOuter').style.display = 'none';
+  document.getElementById('addForm').style.display = 'block';
+  buildEmojiGrid();
+}
+function closeAddForm() {
+  document.getElementById('addBtnOuter').style.display = '';
+  document.getElementById('addForm').style.display = 'none';
+}
+function buildEmojiGrid() {
+  selectedEmoji = '📺';
+  document.getElementById('emojiGrid').innerHTML = EMOJIS.map(e =>
+    `<button type="button" class="emoji-btn${e===selectedEmoji?' sel':''}" onclick="selEmoji('${e}',this)">${e}</button>`
+  ).join('');
+}
+function selEmoji(e, btn) {
+  selectedEmoji = e;
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function addChannel() {
+  const name = document.getElementById('fName').value.trim();
+  const url  = document.getElementById('fUrl').value.trim();
+  const group= document.getElementById('fGroup').value;
+  if (!name||!url) { toast('Completa nombre y URL ⚠'); return; }
+  channels.push({ id: Date.now(), name, logo: selectedEmoji, group, url });
+  save(); closeAddForm();
+  document.getElementById('fName').value = '';
+  document.getElementById('fUrl').value  = '';
+  renderChannels();
+  toast('Canal agregado ✓');
+}
+
+// ──────────────────────────────────
+//  SCRIPT GENERATOR
+// ──────────────────────────────────
+function renderScript() {
+  const routes = channels.map(ch =>
+    `    "/stream/${ch.id}": "${ch.url.replace(/\\/g,'\\\\').replace(/"/g,'\\"')}",  # ${ch.name}`
+  ).join('\n');
+
+  const curlLines = channels.map(ch =>
+    `    print("    curl -X POST http://${localIP}:${port}/update/${ch.id} -d 'NUEVA_URL'")`
+  ).join('\n');
+
+  const code =
+`#!/usr/bin/env python3
+# ══════════════════════════════════════════
+#   SparkleTv Multi-Channel Proxy
+#   IP     : ${localIP}
+#   Puerto : ${port}
+#   Uso    : python3 sparkletv_proxy.py
+# ══════════════════════════════════════════
+import urllib.request
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+HOST = "${localIP}"
+PORT = ${port}
+
+STREAMS = {
+${routes}
+}
+
+class ProxyHandler(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+
+    def do_GET(self):
+        if self.path == "/playlist.m3u8":
+            lines = ["#EXTM3U"]
+            for path in STREAMS:
+                cid = path.split("/")[-1]
+                lines.append(f"#EXTINF:-1,Canal {cid}")
+                lines.append(f"http://${localIP}:${port}{path}")
+            data = "\\n".join(lines).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/vnd.apple.mpegurl")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        if self.path in STREAMS:
+            try:
+                target_url = STREAMS[self.path]
+                # Detectar el dominio origen según la URL del stream
+                import urllib.parse as _up
+                origin_host = _up.urlparse(target_url).netloc
+                # Headers que imitan un navegador real (evita 403 en CDNs estrictos)
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    "Referer":    "https://joy.cablevideo.com/",
+                    "Origin":     "https://joy.cablevideo.com",
+                    "Accept":     "*/*",
+                    "Accept-Language": "es-ES,es;q=0.9",
+                    "Connection": "keep-alive",
+                    "Sec-Fetch-Dest": "empty",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Site": "cross-site",
+                }
+                req = urllib.request.Request(target_url, headers=headers)
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    data  = r.read()
+                    ctype = r.headers.get("Content-Type", "application/vnd.apple.mpegurl")
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(data)
+            except Exception as e:
+                code = 403 if "403" in str(e) else 502
+                self.send_response(code)
+                self.end_headers()
+                self.wfile.write(f"Error {code}: {e}".encode())
+            return
+        self.send_response(404)
+        self.end_headers()
+
+    def do_POST(self):
+        route = self.path.replace("/update/", "/stream/")
+        if route in STREAMS:
+            length = int(self.headers.get("Content-Length", 0))
+            STREAMS[route] = self.rfile.read(length).decode().strip()
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+if __name__ == "__main__":
+    server = HTTPServer(("0.0.0.0", PORT), ProxyHandler)
+    print(f"\\n  Proxy activo → http://${localIP}:{port}")
+    print(f"  Playlist    → http://${localIP}:{port}/playlist.m3u8\\n")
+    for path in STREAMS:
+        print(f"  Stream: http://${localIP}:{port}{path}")
+    print("\\n  Actualizar token en caliente:")
+${curlLines}
+    print()
+    server.serve_forever()`;
+
+  document.getElementById('scriptCode').textContent = code;
+  document.getElementById('step3url').textContent = `http://${localIP}:${port}/playlist.m3u8`;
+}
+
+// ──────────────────────────────────
+//  M3U GENERATOR
+// ──────────────────────────────────
+function renderM3U() {
+  const lines = ['#EXTM3U'];
+  channels.forEach(ch => {
+    lines.push(`#EXTINF:-1 tvg-id="${ch.id}" tvg-name="${ch.name}" group-title="${ch.group}",${ch.name}`);
+    lines.push(`http://${localIP}:${port}/stream/${ch.id}`);
+  });
+  document.getElementById('m3uContent').textContent = lines.join('\n');
+  document.getElementById('m3uHintUrl').textContent = `http://${localIP}:${port}/playlist.m3u8`;
+}
+
+// ──────────────────────────────────
+//  UTILS
+// ──────────────────────────────────
+function renderAll() {
+  document.getElementById('playlistUrl').textContent = `http://${localIP}:${port}/playlist.m3u8`;
+  renderChannels();
+  renderScript();
+  renderM3U();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function copyText(id, btn) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent || el.value || '').then(() => {
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copiado'; btn.classList.add('ok'); setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 2000); }
+    toast('¡Copiado!');
+  });
+}
+
+function copyRaw(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) { const o = btn.textContent; btn.textContent = '✓'; btn.classList.add('ok'); setTimeout(() => { btn.textContent = o; btn.classList.remove('ok'); }, 2000); }
+    toast('¡Copiado!');
+  });
+}
+
+// ──────────────────────────────────
+//  TICK — update token countdowns
+// ──────────────────────────────────
+setInterval(() => {
+  const now = Date.now() / 1000;
+  channels.forEach(ch => {
+    const card = document.getElementById('card-' + ch.id);
+    if (!card) return;
+    const ts = tokenStatus(ch.url, now);
+    const fill  = card.querySelector('.token-fill');
+    const label = card.querySelector('.token-label');
+    if (fill)  { fill.style.width = ts.pct + '%'; fill.style.background = ts.color; }
+    if (label) { label.textContent = ts.label; label.style.color = ts.color; }
+  });
+}, 1000);
+
+// ──────────────────────────────────
+//  INIT
+// ──────────────────────────────────
+load();
+renderAll();
+</script>
+</body>
+</html>
